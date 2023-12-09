@@ -1,4 +1,8 @@
+## KMS Active v1.0
+
 This App can hellp you active your Windows.
+
+Please run as administrator.
 
 Support system :
 
