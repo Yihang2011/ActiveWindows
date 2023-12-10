@@ -1,6 +1,6 @@
 ## KMS Active v1.0
 
-[![]https://img.shields.io/badge/Release-v1.0.1-blue](https://github.com/Yihang2011/ActiveWindows/releases/tag/v1.0.1)
+[![](https://img.shields.io/badge/Release-v1.0.1-blue)](https://github.com/Yihang2011/ActiveWindows/releases/tag/v1.0.1)
 
 
 This App can hellp you active your Windows.
