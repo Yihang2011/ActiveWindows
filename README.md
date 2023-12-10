@@ -2,7 +2,7 @@
 
 This App can hellp you active your Windows.
 
-Please run as administrator.
+**Please run as administrator.**
 
 Support system :
 
