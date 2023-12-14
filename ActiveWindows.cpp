@@ -229,7 +229,7 @@ string GetSysVersionName(DWORD& dwMajorVer, DWORD& dwMinorVer, DWORD& dwBuildNum
 string GetServerVersionName(DWORD& dwMajorVer, DWORD& dwMinorVer, DWORD& dwBuildNumber)
 {
     string sysVerName = "";
-    switch (dwMinorVer)
+    switch (dwMajorVer)
     {
         case 6:
             switch (dwMinorVer)
@@ -251,6 +251,52 @@ string GetServerVersionName(DWORD& dwMajorVer, DWORD& dwMinorVer, DWORD& dwBuild
             if (dwBuildNumber > 20348) sysVerName = "Windows Server vNext"; break ; // NT 10.0.2xxxx vNext(in 2023) vNext=11
     }
     return sysVerName;
+}
+
+string GerLTSCVersionName(DWORD& dwMajorVer, DWORD& dwMinorVer, DWORD& dwBuildNumber)
+{
+    string sysVerName = "";
+    switch (dwMinorVer)
+    {
+        case 10240: sysVerName = "Windows 10 LTSB 2015"; break ;
+        case 14393: sysVerName = "Windows 10 LTSB 2016"; break ;
+        case 17763: sysVerName = "Windows 10 LTSC 2019"; break ;
+        case 19044: sysVerName = "Windows 10 LTSC 2021"; break ;
+        default: break ;
+    }
+    return sysVerName;
+}
+
+BOOL IsRunAsAdministrator()
+{
+    BOOL fIsRunAsAdmin = FALSE;
+    DWORD dwError = ERROR_SUCCESS;
+    PSID pAdministratorsGroup = NULL;
+    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+    if (!AllocateAndInitializeSid(
+        &NtAuthority,
+        2,
+        SECURITY_BUILTIN_DOMAIN_RID,
+        DOMAIN_ALIAS_RID_ADMINS,
+        0, 0, 0, 0, 0, 0,
+        &pAdministratorsGroup))
+    {
+        dwError = GetLastError();
+        goto Cleanup;
+    }
+    if (!CheckTokenMembership(NULL, pAdministratorsGroup, &fIsRunAsAdmin))
+    {
+        dwError = GetLastError();
+        goto Cleanup;
+    }
+    Cleanup:
+    if (pAdministratorsGroup)
+    {
+        FreeSid(pAdministratorsGroup);
+        pAdministratorsGroup = NULL;
+    }
+    if (ERROR_SUCCESS != dwError) throw dwError;
+    return fIsRunAsAdmin;
 }
 
 int intro()
@@ -278,7 +324,6 @@ void ReadMe()
     clear();
     cout << "KMS Active v1.0\n";
     cout << "Author:YihangXiao\n";
-    cout << "Disclaimer: This software is for learning and communication only, commercial use is strictly prohibited, please delete within 24 hours after downloading.\n";
     cout << "This software is a KMS activation software.\n";
     cout << "The first option is to open ReadMe;\n";
     cout << "The second option is to activate Windows with KMS, which supports Windows 11/10 (except LTSC, LTSB)/8.1/8/7/Vista;\n";
@@ -300,7 +345,22 @@ void ReadMe()
  
 int main()
 {
-    //system("chcp 65001");
+    BOOL runAsAdmin = IsRunAsAdministrator();
+    if (runAsAdmin)
+    {
+        clear();
+        cout << "----------------------------------------------------------" << endl;
+        cout << "Please run as Administrator to active your windows." << endl;
+        cout << "Press any key to exit";
+        for (int i = 1; i <= 3; i++)
+        {
+            Sleep(200);
+            printf(".");
+        }
+        while (true)
+            if (getchar() && getchar())
+                return 0;
+    }
     clear();
     while (true)
     {
@@ -309,24 +369,23 @@ int main()
         else if (op == 2)
         {
         	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
-	        GetNtVersionNumbers(dwMajorVer, dwMinorVer, dwBuildNumber);
             string sysVerName = GetSysVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
             bool iswow64 = isWow64();
             string isWow64 = iswow64 ? "x64" : "x86";
             if (sysVerName == "Windows 11" || sysVerName == "Windows 10")
             {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
                 string editionWin10Win11[5] = {
-                    "1.专业版(Pro)",
-                    "2.专业工作站版(Pro for Workstations)",
-                    "3.专业教育版(Pro Education)",
-                    "4.教育版(Education)",
-                    "5.企业版(Enterprise)"
+                    "1.Pro",
+                    "2.Pro for Workstations",
+                    "3.Pro Education",
+                    "4.Education",
+                    "5.Enterprise"
                 } ;
                 for (int i = 0; i < 5; i++) cout << editionWin10Win11[i] << "\n";
                 int sysVersionName;
-                cout << "\n请选择您的系统的版本：";
+                cout << "\nPlease enter your OS edition:：";
                 cin >> sysVersionName;
                 Sleep(1000);
                 clear();
@@ -341,7 +400,7 @@ int main()
                 }
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -351,8 +410,8 @@ int main()
                     continue ;
             } else if (sysVerName == "Windows 8.1") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.专业版(Pro)\n2.企业版(Enterprise)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.Pro\n2.Enterprise\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -361,7 +420,7 @@ int main()
                 else keyWindows.keyWindowsGeneral.keyWin81.Enterprise();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -371,8 +430,8 @@ int main()
                     continue ;            
             } else if (sysVerName == "Windows 8") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.专业版(Pro)\n2.企业版(Enterprise)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.Pro\n2.Enterprise\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -381,7 +440,7 @@ int main()
                 else keyWindows.keyWindowsGeneral.keyWin8.Enterprise();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -391,8 +450,8 @@ int main()
                     continue ;            
             } else if (sysVerName == "Windows 7") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.专业版(Professional)\n2.企业版(Enterprise)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.Professional\n2.Enterprise\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -401,7 +460,7 @@ int main()
                 else keyWindows.keyWindowsGeneral.keyWin7.Enterprise();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -411,8 +470,8 @@ int main()
                     continue ;            
             } else {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n";
-                cout << "1.商业版(Business)\n2.企业版(Enterprise)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n";
+                cout << "1.Business\n2.Enterprise\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -421,7 +480,7 @@ int main()
                 else keyWindows.keyWindowsGeneral.keyWinVista.Enterprise();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -434,14 +493,13 @@ int main()
         else if (op == 3)
         {
         	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
-	        GetNtVersionNumbers(dwMajorVer, dwMinorVer, dwBuildNumber);
             string sysVerName = GetServerVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
             bool iswow64 = isWow64();
             string isWow64 = iswow64 ? "x64" : "x86";
             if (sysVerName == "Windows Server 2022") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.数据中心版(DataCenter)\n2.标准版(Standard)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.DataCenter\n2.Standard\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -450,7 +508,7 @@ int main()
                 else keyWindows.keyWindowsServer.keyWinSer2022.Standard();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -460,8 +518,8 @@ int main()
                     continue ;    
             } else if (sysVerName == "Windows Server 2019") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.数据中心版(DataCenter)\n2.标准版(Standard)\n3.基本版(Essenitals)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.DataCenter\n2.Standard\n3.Essenitals\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -471,7 +529,7 @@ int main()
                 else keyWindows.keyWindowsServer.keyWinSer2019.Essentials();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -481,8 +539,8 @@ int main()
                     continue ; 
             } else if (sysVerName == "Windows Server 2016") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.数据中心版(DataCenter)\n2.标准版(Standard)\n3.基本版(Essenitals)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.DataCenter\n2.Standard\n3.Essenitals\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -492,7 +550,7 @@ int main()
                 else keyWindows.keyWindowsServer.keyWinSer2016.Essentials();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -502,8 +560,8 @@ int main()
                     continue ; 
             } else if (sysVerName == "Windows Server 2012 R2") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
-                cout << "1.数据中心版(DataCenter)\n2.标准版(Standard)\n3.基本版(Essenitals)\n\n请选择您的系统的版本";
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "1.DataCenter\n2.Standard\n3.Essenitals\n\nPlease enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -513,7 +571,7 @@ int main()
                 else keyWindows.keyWindowsServer.keyWinSer2012R2.Essentials();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -523,18 +581,18 @@ int main()
                     continue ; 
             } else if (sysVerName == "Windows Server 2012") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
                 string editionWinSer2012[7] = { 
-                    "1.默认版(None)", 
-                    "2.单语言版(SingleLauguage)", 
-                    "3.特定国家/地区版(CountrySpecific)", 
-                    "4.标准版(Standard)", 
-                    "5.MultiPoint标准版(MultiPointStandard)", 
-                    "6.MultiPoint高级版(MultiPointPremium)", 
-                    "7.数据中心版(Datacenter)"
+                    "1.None", 
+                    "2.SingleLauguage", 
+                    "3.CountrySpecific", 
+                    "4.Standard", 
+                    "5.MultiPointStandard", 
+                    "6.MultiPointPremium", 
+                    "7.DataCenter"
                 };
                 for (int i = 0; i <= 6; i++) cout << editionWinSer2012[i] << "\n";
-                cout << "请选择您的系统的版本";
+                cout << "Please enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -551,7 +609,7 @@ int main()
                 }
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -561,17 +619,17 @@ int main()
                     continue ; 
             } else if (sysVerName == "Windows Server 2008 R2") {
                 clear();
-                cout << "已检测到" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
                 string editionWinSer2008R2[6] = { 
-                    "1.Web版(Web)", 
-                    "2.HPC版(HPC)", 
-                    "3.标准版(Standard)", 
-                    "4.企业版(Enterprise)", 
-                    "5.数据中心版(Datacenter)", 
-                    "6.面向基于 Itanium 系统的版本(forItaniumBasedSystems)"
+                    "1.Web Edition", 
+                    "2.HPC Edition", 
+                    "3.Standard", 
+                    "4.Enterprise", 
+                    "5.DataCenter", 
+                    "6.forItaniumBasedSystems"
                 };
                 for (int i = 0; i <= 5; i++) cout << editionWinSer2008R2[i] << "\n";
-                cout << "请选择您的系统的版本";
+                cout << "Please enter your OS edition:";
                 int sysVersionName;
                 cin >> sysVersionName;
                 Sleep(1000); clear();
@@ -587,27 +645,122 @@ int main()
                 }
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
                     printf(".");
                 }
                 if (getchar() && getchar())
-                    continue ; }
+                    continue ;
+            } else if (sysVerName == "Windows Server 2008 R2") {
+                clear();
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                string editionWinSer2008[9] = { 
+                    "1.Web Edition", 
+                    "2.HPC Edition", 
+                    "3.Standard", 
+                    "4.Standard (Without Hyper-V)", 
+                    "5.Enterprise", 
+                    "6.Enterprise (Without Hyper-V)", 
+                    "7.DataCenter", 
+                    "8.DataCenter (Without Hyper-V)",
+                    "9.forItaniumBasedSystems"
+                };
+                for (int i = 0; i <= 8; i++) cout << editionWinSer2008[i] << "\n";
+                cout << "Please enter your OS edition:";
+                int sysVersionName;
+                cin >> sysVersionName;
+                Sleep(1000); clear();
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /upk");
+                switch (sysVersionName)
+                {
+                    case 1: keyWindows.keyWindowsServer.keyWinSer2008.Web(); break ;
+                    case 2: keyWindows.keyWindowsServer.keyWinSer2008.HPC(); break ;
+                    case 3: keyWindows.keyWindowsServer.keyWinSer2008.Standard(); break ;
+                    case 4: keyWindows.keyWindowsServer.keyWinSer2008.StandardwithoutHyperV(); break ;
+                    case 5: keyWindows.keyWindowsServer.keyWinSer2008.Enterprise(); break ;
+                    case 6: keyWindows.keyWindowsServer.keyWinSer2008.EnterprisewithoutHyperV(); break ;
+                    case 7: keyWindows.keyWindowsServer.keyWinSer2008.Datacenter(); break ;
+                    case 8: keyWindows.keyWindowsServer.keyWinSer2008.DatacenterwithoutHyperV(); break ;
+                    default: keyWindows.keyWindowsServer.keyWinSer2008.forItaniumBasedSystems(); break ;
+                }
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
+                cout << "\n\nPress any key to continue";
+                for (int i = 1; i <= 3; i++)
+                {
+                    Sleep(200);
+                    printf(".");
+                }
+                if (getchar() && getchar())
+                    continue ; 
+        } }
+        else if (op == 4)
+        {
+        	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
+            string sysVerName = GetServerVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
+            bool iswow64 = isWow64();
+            string isWow64 = iswow64 ? "x64" : "x86";
+            if (sysVerName == "Windows 10 LTSC 2021" || sysVerName == "Windows 10 LTSC 2019")
+            {
+                cout << "Detected " << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build " << dwBuildNumber << "...\n\n" ;
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /upk");
+                keyWindows.keyWin10LTSCLTSB.LongTermServicingChannel2019_2021();
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
+                cout << "\n\nPress any key to continue";
+                for (int i = 1; i <= 3; i++)
+                {
+                    Sleep(200);
+                    printf(".");
+                }
+                if (getchar() && getchar())
+                    continue ; 
+            }
+            else if (sysVerName == "Windows 10 LTSB 2016")
+            {
+                cout << "Detected" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build" << dwBuildNumber << "...\n\n";
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /upk");
+                keyWindows.keyWin10LTSCLTSB.LongTermServicingBranch2016();
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
+                cout << "\n\nPress any key to continue";
+                for (int i = 1; i <= 3; i++)
+                {
+                    Sleep(200);
+                    printf(".");
+                }
+                if (getchar() && getchar()) continue ;
+            }
+            else
+            {
+                cout << "Detected" << sysVerName << " " << isWow64 << " v" << dwMajorVer << "." << dwMinorVer << " Build" << dwBuildNumber << "...\n\n";
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /upk");
+                keyWindows.keyWin10LTSCLTSB.LongTermServicingBranch2015();
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /skms kms.loli.beer");
+                system("cscript //nologo %windir%\\System32\\slmgr.vbs /ato");   
+                cout << "\n\nPress any key to continue";
+                for (int i = 1; i <= 3; i++)
+                {
+                    Sleep(200);
+                    printf(".");
+                }
+                if (getchar() && getchar()) continue ;
+            }
         }
         else if (op == 5)
         {
             clear();
             int activeMessageLevel;
-            printf("1.激活状态截止日期\n2.激活状态\n3.详细激活状态\n\n请选择查看的信息：");
+            printf("1.Activation status expiration date\n2.Activation status\n3.Detailed activation status\n\nPlease select the information you want to view:");
             scanf("%d", &activeMessageLevel);
             cout << "\n\n";
             if (activeMessageLevel == 1) 
             {
                 clear();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /xpr");
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -618,7 +771,7 @@ int main()
             } else if (activeMessageLevel == 2) {
                 clear();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /dli");
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -629,7 +782,7 @@ int main()
             } else {
                 clear();
                 system("cscript //nologo %windir%\\System32\\slmgr.vbs /dlv");
-                cout << "\n\n请按任意键返回";
+                cout << "\n\nPress any key to continue";
                 for (int i = 1; i <= 3; i++)
                 {
                     Sleep(200);
@@ -639,10 +792,10 @@ int main()
                     continue ;
             }
         }
-        else
+        else // case 6: exit
         {
             clear();
-            cout << "请按任意键退出";
+            cout << "Press any key to exit";
             for (int i = 1; i <= 3; i++)
             {
                 Sleep(200);
