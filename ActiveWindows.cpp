@@ -346,7 +346,7 @@ void ReadMe()
 int main()
 {
     BOOL runAsAdmin = IsRunAsAdministrator();
-    if (runAsAdmin)
+    if (!runAsAdmin)
     {
         clear();
         cout << "----------------------------------------------------------" << endl;
@@ -369,6 +369,7 @@ int main()
         else if (op == 2)
         {
         	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
+            GetNtVersionNumbers(dwMajorVer, dwMinorVer, dwBuildNumber);
             string sysVerName = GetSysVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
             bool iswow64 = isWow64();
             string isWow64 = iswow64 ? "x64" : "x86";
@@ -493,6 +494,7 @@ int main()
         else if (op == 3)
         {
         	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
+            GetNtVersionNumbers(dwMajorVer, dwMinorVer, dwBuildNumber);
             string sysVerName = GetServerVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
             bool iswow64 = isWow64();
             string isWow64 = iswow64 ? "x64" : "x86";
@@ -699,6 +701,7 @@ int main()
         else if (op == 4)
         {
         	DWORD dwMajorVer, dwMinorVer, dwBuildNumber;
+            GetNtVersionNumbers(dwMajorVer, dwMinorVer, dwBuildNumber);
             string sysVerName = GetServerVersionName(dwMajorVer, dwMinorVer, dwBuildNumber);
             bool iswow64 = isWow64();
             string isWow64 = iswow64 ? "x64" : "x86";
